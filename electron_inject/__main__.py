@@ -41,6 +41,11 @@ if __name__ == '__main__':
                       default=[],
                       type="string",
                       help="Add a script to be injected into each window (render thread)")
+    parser.add_option('-c', "--inject-css",
+                      dest="inject_css",
+                      default=None,
+                      type="string",
+                      help="Add a CSS to be injected into each window (render thread)")
 
     if "--help" in sys.argv:
         parser.print_help()
@@ -62,7 +67,7 @@ if __name__ == '__main__':
         logger.error("mandatory argument <application> missing! see usage.")
         sys.exit(1)
 
-    if not options.silent and not options.browser and not len(options.render_scripts): # if non-silent standard execution
+    if not options.silent and not options.browser and not len(options.render_scripts) and not options.inject_css: # if non-silent standard execution
         # ask user if they want to open devtools in browser
         if(input("Do you want to open the Developer Console in your Browser? [y/N]").strip().lower().startswith("y")):
             options.browser = True
@@ -73,4 +78,5 @@ if __name__ == '__main__':
         browser=options.browser,
         timeout=options.timeout,
         scripts=options.render_scripts,
+        css=options.inject_css,
     )

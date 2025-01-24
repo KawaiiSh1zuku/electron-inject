@@ -17,12 +17,25 @@ logger = logging.getLogger(__name__)
 SCRIPT_HOTKEYS_F12_DEVTOOLS_F5_REFRESH = """document.addEventListener("keydown", function (e) {
     if (e.which === 123) {
         //F12
-        require("electron").remote.BrowserWindow.getFocusedWindow().webContents.toggleDevTools();
+        event.preventDefault();
+        alert('Use the fucking Ctrl+Shift+I !!!');
     } else if (e.which === 116) {
         //F5
         location.reload();
     }
 });"""
+
+SCRIPT_INJECT_CSS = """
+const inject_css = document.createElement("style");
+inject_css.type = "text/css";
+const cssCode = `{inject}`;
+if (inject_css.styleSheet) {
+  inject_css.styleSheet.cssText = cssCode;
+} else {
+  inject_css.textContent = cssCode;
+}
+document.head.appendChild(inject_css);
+"""
 
 
 class LazyWebsocket(object):
@@ -138,13 +151,17 @@ def launch_url(url):
             logger.info ('Please open a browser on: ' + url)
 
 
-def inject(target, devtools=False, browser=False, timeout=None, scripts=None, port=None):
+def inject(target, devtools=False, browser=False, timeout=None, scripts=None, port=None, css=None):
     timeout = time.time() + int(timeout) if timeout else 5
     scripts = dict.fromkeys(scripts or [])
 
     for name in scripts:
         with open(name, "r") as file:
             scripts[name] = file.read()
+    
+    if css:
+        with open(css, "r") as file:
+            css = file.read()
 
     erb = ElectronRemoteDebugger.execute(target, port)
 
@@ -159,6 +176,11 @@ def inject(target, devtools=False, browser=False, timeout=None, scripts=None, po
                 for name, content in scripts.items():
                     logger.info("injecting %s into %s" % (name, w.get('id')))
                     logger.debug(erb.eval(w, content))
+                    
+                if css:
+                    logger.info("injecting css style into %s" % w.get('id'))
+                    inject_style = SCRIPT_INJECT_CSS.replace("{inject}", css)
+                    logger.debug(erb.eval(w, inject_style))
 
             except Exception as e:
                 logger.exception(e)
